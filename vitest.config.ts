@@ -45,6 +45,7 @@ function standardDecoratorPlugin(): Plugin {
 export default defineConfig({
   plugins: [standardDecoratorPlugin()],
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       // The published /client bundles are browser module-loader format and
       // crash under Node; tests resolve the same entries to their sources.

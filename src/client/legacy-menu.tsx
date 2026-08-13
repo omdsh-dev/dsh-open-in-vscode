@@ -29,12 +29,20 @@ type WorkspaceTranslate = (
 
 interface ActiveMenu {
   workspace: WorkspaceItem
+  anchor: HTMLElement
   menu?: HTMLElement
   mount?: HTMLElement
   root?: Root
 }
 
 const MOUNT_ATTR = 'data-dsh-open-in-vscode-legacy'
+
+function cancelPointerLeaveClose(anchor: HTMLElement): void {
+  // rc.6's portaled Menu joins trigger and list through React's synthetic
+  // event tree. Our compatibility row is a nested React root, so entering it
+  // otherwise looks like leaving that tree and the menu closes after 200ms.
+  anchor.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }))
+}
 
 function workspaceForButton(
   button: HTMLButtonElement,
@@ -87,6 +95,9 @@ export function installLegacyWorkspaceMenu(options: LegacyWorkspaceMenuOptions):
     const mount = document.createElement('div')
     mount.setAttribute('role', 'presentation')
     mount.setAttribute(MOUNT_ATTR, '')
+    mount.addEventListener('pointerover', () => {
+      if (active !== undefined) cancelPointerLeaveClose(active.anchor)
+    })
     viewport.appendChild(mount)
     menu.setAttribute(MOUNT_ATTR, '')
     const root = createRoot(mount)
@@ -118,7 +129,7 @@ export function installLegacyWorkspaceMenu(options: LegacyWorkspaceMenuOptions):
     const workspace = workspaceForButton(button, options.workspaces, options.workspaceT)
     if (workspace === undefined) return
     unmount()
-    active = { workspace }
+    active = { workspace, anchor: button.parentElement ?? button }
     queueMicrotask(mountIntoOpenMenu)
   }
   document.addEventListener('click', onClick, true)

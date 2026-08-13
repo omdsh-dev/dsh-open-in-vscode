@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import { installLegacyWorkspaceMenu } from '../src/client/legacy-menu.tsx'
 import { en } from '../src/client/locales.ts'
 
@@ -35,6 +37,33 @@ function openWorkspaceMenu(): void {
   }
   menu.appendChild(viewport)
   document.body.appendChild(menu)
+}
+
+function LegacyWorkspaceMenu({ onClose }: { onClose: () => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Menu
+      open={open}
+      closeOnPointerLeave
+      portal
+      anchor={
+        <button
+          type="button"
+          aria-label="Workspace actions for dsh"
+          onClick={() => { setOpen(true) }}
+        >Actions</button>
+      }
+      items={[
+        { id: 'rename', label: 'Rename' },
+        { id: 'delete', label: 'Delete workspace' },
+      ]}
+      onSelect={() => {}}
+      onClose={() => {
+        onClose()
+        setOpen(false)
+      }}
+    />
+  )
 }
 
 describe('rc.6 Workspace menu compatibility', () => {
@@ -86,5 +115,31 @@ describe('rc.6 Workspace menu compatibility', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(screen.queryByRole('menuitem', { name: /VSCode/u })).toBeNull()
     dispose()
+  })
+
+  it('keeps the rc.6 hover-closing menu open when the pointer enters the injected row', async () => {
+    const onClose = vi.fn()
+    const dispose = installLegacyWorkspaceMenu({
+      workspaces: { getSnapshot: () => ({ items: [{ title: 'dsh', path: '/work/dsh' }] }) },
+      workspaceT: translate(workspaceStrings),
+      rowT: translate(en),
+      open: vi.fn(async () => {}),
+    })
+    render(<LegacyWorkspaceMenu onClose={onClose} />)
+    const anchor = screen.getByRole('button', { name: 'Workspace actions for dsh' })
+    fireEvent.click(anchor)
+    const row = await screen.findByRole('menuitem', { name: 'Open dsh in VSCode' })
+
+    vi.useFakeTimers()
+    try {
+      fireEvent.pointerLeave(anchor.parentElement as HTMLElement)
+      fireEvent.pointerOver(row)
+      act(() => { vi.advanceTimersByTime(1_000) })
+      expect(onClose).not.toHaveBeenCalled()
+      expect(screen.getByRole('menu')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+      dispose()
+    }
   })
 })
