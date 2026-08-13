@@ -14,10 +14,11 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { OPEN_IN_VSCODE_REMOTE } from './remote.ts'
 import { NS, en, zh } from './locales.ts'
 import { OpenInVscodeRow, type OpenInVscodeInjected } from './row.tsx'
+import { installLegacyWorkspaceMenu } from './legacy-menu.tsx'
 import { adoptStyles } from './styles.ts'
 
 /** Required services: slots, the gateway Remote face, and locale. */
-export const inject = ['slots', 'remote', 'locale']
+export const inject = ['slots', 'remote', 'locale', 'workspaces']
 
 /** The mounted openInVscode namespace service's callable face. */
 interface OpenInVscodeNamespaceFace {
@@ -69,4 +70,31 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): OpenInVscodeInjected => ({ open }),
   }, OpenInVscodeRow))
+
+  // The latest public npm build (0.1.0-rc.6) predates the Workspace row-menu
+  // slot. Keep its DOM adapter live only while that declaration is absent;
+  // a newer runtime declaring the slot immediately tears the adapter down.
+  ctx.effect(() => {
+    let disposeLegacy: (() => void) | undefined
+    const reconcile = (): void => {
+      const native = ctx.slots.spec('sidebar.workspaces.row-menu') !== undefined
+      if (native) {
+        disposeLegacy?.()
+        disposeLegacy = undefined
+      } else if (disposeLegacy === undefined) {
+        disposeLegacy = installLegacyWorkspaceMenu({
+          workspaces: ctx.workspaces.list,
+          workspaceT: ctx.locale.bind('workspace'),
+          rowT: ctx.locale.bind(NS),
+          open,
+        })
+      }
+    }
+    const unsubscribe = ctx.slots.subscribe('sidebar.workspaces.row-menu', reconcile)
+    reconcile()
+    return () => {
+      unsubscribe()
+      disposeLegacy?.()
+    }
+  }, 'dsh-open-in-vscode: rc.6 workspace-menu compatibility')
 }

@@ -5,8 +5,9 @@ Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
 
 ## 功能
 
-- 客户端注册到 harness 的 `sidebar.workspaces.row-menu` 插槽（工作区行溢出菜单扩展点），
-  渲染随语言切换的菜单行 —— 中文为 **在 VSCode 中打开**，英文为 **Open in VSCode**。
+- 客户端优先使用 harness 的 `sidebar.workspaces.row-menu` 插槽；公开发布的
+  DSH `0.1.0-rc.6` 尚未包含该插槽时，则自动启用受限兼容适配器。两条路径都渲染
+  随语言切换的菜单行 —— 中文为 **在 VSCode 中打开**，英文为 **Open in VSCode**。
 - 点击该行会关闭菜单，并通过严格的 Typert Remote `openInVscode/open` 把工作区目录交给主机。
 - 主机侧用配置的编辑器 CLI 打开该目录（默认 `code <path>`），进程分离，
   编辑器比服务器活得更久。
@@ -16,8 +17,8 @@ Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
 - PATH 中存在编辑器 CLI（默认为 `code` —— 安装
   [VS Code 命令行工具](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)，
   或在插件 `command` 中配置任何能打开目录的编辑器）。
-- 一个声明了 `sidebar.workspaces.row-menu` 插槽的 harness 构建
-  （out-of-tree 插件槽位扩展点）。
+- DSH `0.1.0-rc.6` 或更高版本。存在 Workspace 行菜单扩展点时使用原生插槽，
+  `rc.6` 则使用兼容适配器。
 
 ## 安装
 

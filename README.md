@@ -6,10 +6,11 @@ inside its **…** overflow menu.
 
 ## What it does
 
-- The client half registers into the harness's `sidebar.workspaces.row-menu`
-  slot (a workspace-row overflow-menu extension point) and renders a
-  locale-following menu row — **在 VSCode 中打开** under the Chinese locale,
-  **Open in VSCode** under English.
+- The client half uses the harness's `sidebar.workspaces.row-menu` slot when
+  available and falls back to a scoped compatibility adapter on the public
+  DSH `0.1.0-rc.6` build. Both paths render the same locale-following menu row
+  — **在 VSCode 中打开** under the Chinese locale, **Open in VSCode** under
+  English.
 - The row's click closes the menu and calls the host over the strict Typert
   Remote `openInVscode/open`, passing the workspace directory.
 - The host half spawns the configured editor CLI on that directory
@@ -20,8 +21,8 @@ inside its **…** overflow menu.
 - An editor CLI on PATH (default `code` — install the
   [VS Code shell command](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
   or set the plugin `command` to any editor that opens a directory).
-- A harness build whose `ui-workspace` declares the
-  `sidebar.workspaces.row-menu` slot (the out-of-tree slot extension point).
+- DSH `0.1.0-rc.6` or newer. The plugin uses the native Workspace row-menu
+  extension point where present and a compatibility adapter on `rc.6`.
 
 ## Install
 

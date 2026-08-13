@@ -1,7 +1,7 @@
 {
   "name": "dsh-open-in-vscode",
   "description": "Open a workspace directory in VS Code from the web GUI: an Open in VSCode row in every workspace's overflow menu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",

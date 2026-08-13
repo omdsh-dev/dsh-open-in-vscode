@@ -48,7 +48,7 @@ await build({
   target: ['es2022'],
   sourcemap: true,
   jsx: 'automatic',
-  external: [...dshExternal, 'react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'scheduler'],
+  external: [...dshExternal, 'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'scheduler'],
   banner: {
     js: "window.__ModuleLoader__.load({ id: 'dsh-open-in-vscode', factory: (require) => { var module = { exports: {} }; var exports = module.exports;",
   },
