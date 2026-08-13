@@ -1,0 +1,6 @@
+# dsh-open-in-vscode bundle patch: mount the host plugin under its package
+# name, resolved through the profile's node_modules (the healed mirror makes
+# every bundle dependency resolvable to bare rows).
+- insert:
+    - id: dsh-open-in-vscode
+      name: dsh-open-in-vscode

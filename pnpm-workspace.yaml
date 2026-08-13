@@ -1,0 +1,10 @@
+packages:
+  - .
+
+autoInstallPeers: false
+nodeLinker: hoisted
+
+# pnpm 10+ blocks install scripts by default; esbuild genuinely needs its
+# postinstall to fetch the platform binary.
+allowBuilds:
+  esbuild: true
