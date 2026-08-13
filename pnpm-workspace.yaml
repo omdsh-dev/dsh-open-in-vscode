@@ -3,6 +3,9 @@ packages:
 
 autoInstallPeers: false
 nodeLinker: hoisted
+minimumReleaseAge: 10080
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
 
 # pnpm 10+ blocks install scripts by default; esbuild genuinely needs its
 # postinstall to fetch the platform binary.
