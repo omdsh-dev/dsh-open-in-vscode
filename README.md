@@ -32,13 +32,20 @@ Add the plugin to your web profile (this runs pnpm inside the profile and
 reconciles the bundle layer):
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/heads/main.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
 ```
 
 Restart the web server (`kill -TERM <pid>` and wait for exit — never
 `kill -9`, it tears the session zstd log mid-frame), then refresh the page.
 The host plugin mounts under `dsh-open-in-vscode`; the client bundle is
 served at `/plugins/dsh-open-in-vscode/client.js`.
+
+The versioned tarball replaces older pinned commits without running a git
+`prepare` script. Confirm the installed version with:
+
+```sh
+dsh plugin --profile web list dsh-open-in-vscode --depth 0
+```
 
 ## Configuration
 

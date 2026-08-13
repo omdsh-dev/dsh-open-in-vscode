@@ -26,12 +26,19 @@ Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
 把插件加入你的 web profile（会在 profile 内执行 pnpm 并合并 bundle 层）：
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/heads/main.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
 ```
 
 重启 Web 服务器（`kill -TERM <pid>` 并等待退出——切勿 `kill -9`，会撕裂
 会话 zstd 日志），然后刷新页面。主机插件挂载在 `dsh-open-in-vscode`；
 客户端 bundle 由 `/plugins/dsh-open-in-vscode/client.js` 提供。
+
+版本化 tarball 会直接替换旧的固定提交，且不会运行 git `prepare` 脚本。可用以下
+命令确认实际安装版本：
+
+```sh
+dsh plugin --profile web list dsh-open-in-vscode --depth 0
+```
 
 ## 配置
 

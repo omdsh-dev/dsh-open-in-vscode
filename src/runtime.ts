@@ -45,7 +45,7 @@ export function launchEditor(
       signal?.removeEventListener('abort', abort)
       const hint = error.code === 'ENOENT'
         ? process.platform === 'win32' && command.toLowerCase() === 'code'
-          ? '; VS Code was not found on PATH or in its standard per-user/system install locations'
+          ? '; dsh-open-in-vscode@0.1.5 could not find VS Code on PATH or in its standard per-user/system install locations'
           : `; the "${command}" executable is not on PATH — install the editor CLI or configure the plugin "command"`
         : ''
       reject(new Error(`open-in-vscode: failed to launch "${command}": ${error.message}${hint}`))
