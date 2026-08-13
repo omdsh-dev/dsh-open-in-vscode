@@ -11,6 +11,7 @@ import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { ResolvedConfig } from './types.ts'
+import { resolveEditorCommand } from './resolve.ts'
 
 /**
  * Spawn the configured editor CLI on one directory and settle when the
@@ -32,13 +33,20 @@ export function launchEditor(
       reject(new Error('open-in-vscode: the open request was aborted'))
       return
     }
-    const child = spawn(command, [...args, path], { detached: true, stdio: 'ignore' })
+    const executable = resolveEditorCommand(command)
+    const child = spawn(executable, [...args, path], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    })
     const abort = (): void => { child.kill() }
     signal?.addEventListener('abort', abort, { once: true })
     child.once('error', (error: NodeJS.ErrnoException) => {
       signal?.removeEventListener('abort', abort)
       const hint = error.code === 'ENOENT'
-        ? `; the "${command}" executable is not on PATH — install the editor CLI or configure the plugin "command"`
+        ? process.platform === 'win32' && command.toLowerCase() === 'code'
+          ? '; VS Code was not found on PATH or in its standard per-user/system install locations'
+          : `; the "${command}" executable is not on PATH — install the editor CLI or configure the plugin "command"`
         : ''
       reject(new Error(`open-in-vscode: failed to launch "${command}": ${error.message}${hint}`))
     })

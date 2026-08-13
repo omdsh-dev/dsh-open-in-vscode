@@ -18,7 +18,9 @@ inside its **…** overflow menu.
 
 ## Prerequisites
 
-- An editor CLI on PATH (default `code` — install the
+- VS Code, or an editor CLI on PATH. On Windows, the default `code` command
+  also discovers standard per-user and system VS Code installations. On macOS,
+  install the
   [VS Code shell command](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
   or set the plugin `command` to any editor that opens a directory).
 - DSH `0.1.0-rc.6` or newer. The plugin uses the native Workspace row-menu
@@ -45,11 +47,10 @@ cordis.yml:
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `command` | `code` | Executable that opens a directory, resolved through PATH. |
+| `command` | `code` | Executable that opens a directory. The default also probes standard Windows VS Code install locations; other commands resolve through PATH. |
 | `args` | `[]` | Extra arguments passed before the directory path. |
 
-A missing executable fails loud with a fix hint ("not on PATH — install the
-editor CLI or configure the plugin command"); relative paths are refused.
+A missing executable fails loud with a fix hint; relative paths are refused.
 
 ## Capability boundary
 

@@ -14,7 +14,8 @@ Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
 
 ## 前置条件
 
-- PATH 中存在编辑器 CLI（默认为 `code` —— 安装
+- 已安装 VS Code，或 PATH 中存在编辑器 CLI。Windows 使用默认 `code` 时还会
+  自动查找 VS Code 的标准用户级、系统级安装目录；macOS 请安装
   [VS Code 命令行工具](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)，
   或在插件 `command` 中配置任何能打开目录的编辑器）。
 - DSH `0.1.0-rc.6` 或更高版本。存在 Workspace 行菜单扩展点时使用原生插槽，
@@ -38,11 +39,10 @@ dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/arc
 
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
-| `command` | `code` | 打开目录的可执行文件，按 PATH 解析。 |
+| `command` | `code` | 打开目录的可执行文件。默认值还会查找 Windows 的标准 VS Code 安装目录；其他命令按 PATH 解析。 |
 | `args` | `[]` | 目录路径前附加的参数。 |
 
-可执行文件缺失时会响亮失败并给出修复提示（"not on PATH — install the editor
-CLI or configure the plugin command"）；相对路径会被拒绝。
+可执行文件缺失时会响亮失败并给出修复提示；相对路径会被拒绝。
 
 ## 能力边界
 
