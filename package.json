@@ -1,7 +1,7 @@
 {
   "name": "dsh-open-in-vscode",
   "description": "Open a workspace directory in VS Code from the web GUI: an Open in VSCode row in every workspace's overflow menu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -49,8 +49,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
     "test": "vitest run",
     "lint": "eslint .",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build",
-    "prepare": "pnpm run build"
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build"
   },
   "engines": {
     "node": "^22.19 || >=24"
