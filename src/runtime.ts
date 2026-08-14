@@ -7,14 +7,14 @@
  * endpoint in a profile-loaded bundle.
  */
 import { spawn } from 'node:child_process'
-import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import type { ResolvedConfig } from './types.ts'
-import { resolveEditorCommand } from './resolve.ts'
+import { WorkspaceId } from '@deepseek-ai/dsh-workspace'
+import { editorCatalog } from './editors.ts'
+import type { EditorCatalog, ResolvedEditor } from './types.ts'
 
 /**
- * Spawn the configured editor CLI on one directory and settle when the
+ * Spawn one resolved editor command on a Workspace directory and settle when the
  * process has launched (the child detaches and outlives the server).
  * @param command - executable resolved through PATH.
  * @param args - extra arguments before the directory path.
@@ -33,8 +33,7 @@ export function launchEditor(
       reject(new Error('open-in-vscode: the open request was aborted'))
       return
     }
-    const executable = resolveEditorCommand(command)
-    const child = spawn(executable, [...args, path], {
+    const child = spawn(command, [...args, path], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true,
@@ -44,9 +43,7 @@ export function launchEditor(
     child.once('error', (error: NodeJS.ErrnoException) => {
       signal?.removeEventListener('abort', abort)
       const hint = error.code === 'ENOENT'
-        ? process.platform === 'win32' && command.toLowerCase() === 'code'
-          ? '; dsh-open-in-vscode@0.1.5 could not find VS Code on PATH or in its standard per-user/system install locations'
-          : `; the "${command}" executable is not on PATH — install the editor CLI or configure the plugin "command"`
+        ? `; the "${command}" executable is unavailable — install it or update the plugin editor configuration`
         : ''
       reject(new Error(`open-in-vscode: failed to launch "${command}": ${error.message}${hint}`))
     })
@@ -58,32 +55,57 @@ export function launchEditor(
   })
 }
 
-/** Open-in-editor service: one directory per call, detached editor process. */
+/** Host-side editor catalog and registered-Workspace launch service. */
 export class OpenInVscodeRuntime extends TypertRemoteService {
+  private readonly editors: ReadonlyMap<string, ResolvedEditor>
+  private readonly catalog: EditorCatalog
+
   /**
    * Register the service under the `openInVscode` key (the wire namespace).
    * @param ctx - owning cordis context.
-   * @param config - resolved plugin configuration.
+   * @param editors - resolved allowlisted launch targets.
+   * @param configuredDefault - preferred editor id from Host configuration.
    */
   constructor(
     ctx: Context,
-    private readonly config: ResolvedConfig,
+    editors: readonly ResolvedEditor[],
+    configuredDefault: string,
   ) {
     super(ctx, 'openInVscode')
+    this.editors = new Map(editors.map(editor => [editor.id, editor]))
+    this.catalog = editorCatalog(editors, configuredDefault)
+  }
+
+  /** Return browser-safe editor metadata without commands or arguments. */
+  @Remote
+  list(): EditorCatalog {
+    return this.catalog
   }
 
   /**
-   * Open one absolute directory in the configured editor.
-   * @param path - absolute directory path from the workspace row.
+   * Open one registered Workspace in one allowlisted editor.
+   * @param workspaceId - stable Host Workspace id from the row owner share.
+   * @param editorId - id from {@link list}; never a command.
    * @param signal - caller lifetime; an abort before launch cancels the open.
    * @returns the accepted launch.
    */
   @Remote
-  async open(path: string, signal?: AbortSignal): Promise<{ opened: true }> {
-    if (!isAbsolute(path)) {
-      throw new Error(`open-in-vscode: refusing a relative path "${path}"`)
+  async open(workspaceId: string, editorId: string, signal?: AbortSignal): Promise<{ opened: true }> {
+    const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(workspaceId))
+    if (workspace === undefined) {
+      throw new Error(`open-in-vscode: unknown workspace "${workspaceId}"`)
     }
-    await launchEditor(this.config.command, this.config.args, path, signal)
+    if (await workspace.status() !== 'ok') {
+      throw new Error(`open-in-vscode: workspace directory is missing for "${workspaceId}"`)
+    }
+    const editor = this.editors.get(editorId)
+    if (editor === undefined) {
+      throw new Error(`open-in-vscode: unknown editor "${editorId}"`)
+    }
+    if (!editor.available) {
+      throw new Error(`open-in-vscode: editor "${editorId}" is unavailable${editor.hint === undefined ? '' : `; ${editor.hint}`}`)
+    }
+    await launchEditor(editor.command, editor.args, workspace.path, signal)
     return { opened: true }
   }
 }

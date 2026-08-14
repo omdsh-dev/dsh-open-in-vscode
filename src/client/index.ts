@@ -1,10 +1,10 @@
 /**
  * dsh-open-in-vscode client plugin: the browser half of the workspace
- * overflow-menu "Open in VSCode" row. Mounts the openInVscode Remote
- * namespace and registers the row into the harness's
+ * overflow-menu editor launcher. Mounts the openInVscode Remote namespace
+ * and registers the split action into the harness's
  * `sidebar.workspaces.row-menu` slot, with zh/en dictionaries. The row's
- * click closes the menu and asks the host to launch the editor on the
- * workspace directory.
+ * explicit click closes the menu and asks the Host to resolve both the
+ * Workspace and the selected editor.
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the ui-workspace SlotMap merge (the row-menu owner share).
@@ -16,15 +16,29 @@ import { NS, en, zh } from './locales.ts'
 import { OpenInVscodeRow, type OpenInVscodeInjected } from './row.tsx'
 import { installLegacyWorkspaceMenu } from './legacy-menu.tsx'
 import { adoptStyles } from './styles.ts'
+import type { EditorCatalog } from '../types.ts'
 
 /** Required services: slots, the gateway Remote face, and locale. */
 export const inject = ['slots', 'remote', 'locale', 'workspaces']
 
 /** The mounted openInVscode namespace service's callable face. */
 interface OpenInVscodeNamespaceFace {
-  open(path: string, signal?: AbortSignal): Promise<
+  list(): Promise<
+    { ok: true; value: EditorCatalog } | { ok: false; error: { code: string; message: string; details: object } }
+  >
+  open(workspaceId: string, editorId: string, signal?: AbortSignal): Promise<
     { ok: true; value: { opened: true } } | { ok: false; error: { code: string; message: string; details: object } }
   >
+}
+
+interface WorkspaceRowMenuSlots {
+  inject(name: string, mount: () => () => void): void
+  register(
+    options: { name: string; locale: typeof NS; inject: () => OpenInVscodeInjected },
+    component: typeof OpenInVscodeRow,
+  ): () => void
+  spec(name: string): unknown
+  subscribe(name: string, listener: () => void): () => void
 }
 
 /**
@@ -42,6 +56,7 @@ export function apply(ctx: ClientContext): void {
   // root fiber — the namespace service mounted under the gateway entry is
   // unreachable that way (the store path resolves it by isolation label).
   let openInVscode: OpenInVscodeNamespaceFace | undefined
+  let catalogPromise: Promise<EditorCatalog> | undefined
   ctx.effect(async () => {
     const dispose = await ctx.remote.$mount(OPEN_IN_VSCODE_REMOTE)
     openInVscode = (ctx.reflect as unknown as { get(name: string): unknown })
@@ -51,24 +66,47 @@ export function apply(ctx: ClientContext): void {
     }
     return () => {
       openInVscode = undefined
+      catalogPromise = undefined
       void dispose()
     }
   }, 'dsh-open-in-vscode: remote')
 
-  const open = async (path: string): Promise<void> => {
+  const listEditors = (): Promise<EditorCatalog> => {
+    if (catalogPromise !== undefined) return catalogPromise
+    catalogPromise = (async () => {
+      if (openInVscode === undefined) {
+        throw new Error('dsh-open-in-vscode: the openInVscode Remote is not mounted')
+      }
+      const result = await openInVscode.list()
+      if (!result.ok) {
+        throw new Error(`open-in-vscode: ${result.error.code}: ${result.error.message}`)
+      }
+      return result.value
+    })().catch((error: unknown) => {
+      catalogPromise = undefined
+      throw error
+    })
+    return catalogPromise
+  }
+
+  const open = async (workspaceId: string, editorId: string): Promise<void> => {
     if (openInVscode === undefined) {
       throw new Error('dsh-open-in-vscode: the openInVscode Remote is not mounted')
     }
-    const result = await openInVscode.open(path)
+    const result = await openInVscode.open(workspaceId, editorId)
     if (!result.ok) {
       throw new Error(`open-in-vscode: ${result.error.code}: ${result.error.message}`)
     }
   }
 
-  ctx.slots.inject('sidebar.workspaces.row-menu', () => ctx.slots.register({
+  // The published Harness package does not yet carry this future slot's
+  // declaration, so this narrow adapter keeps compile-time compatibility
+  // without claiming ownership of the host SlotMap contract.
+  const rowMenuSlots = ctx.slots as unknown as WorkspaceRowMenuSlots
+  rowMenuSlots.inject('sidebar.workspaces.row-menu', () => rowMenuSlots.register({
     name: 'sidebar.workspaces.row-menu',
     locale: NS,
-    inject: (): OpenInVscodeInjected => ({ open }),
+    inject: (): OpenInVscodeInjected => ({ listEditors, open }),
   }, OpenInVscodeRow))
 
   // The latest public npm build (0.1.0-rc.6) predates the Workspace row-menu
@@ -77,7 +115,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     let disposeLegacy: (() => void) | undefined
     const reconcile = (): void => {
-      const native = ctx.slots.spec('sidebar.workspaces.row-menu') !== undefined
+      const native = rowMenuSlots.spec('sidebar.workspaces.row-menu') !== undefined
       if (native) {
         disposeLegacy?.()
         disposeLegacy = undefined
@@ -86,11 +124,12 @@ export function apply(ctx: ClientContext): void {
           workspaces: ctx.workspaces.list,
           workspaceT: ctx.locale.bind('workspace'),
           rowT: ctx.locale.bind(NS),
+          listEditors,
           open,
         })
       }
     }
-    const unsubscribe = ctx.slots.subscribe('sidebar.workspaces.row-menu', reconcile)
+    const unsubscribe = rowMenuSlots.subscribe('sidebar.workspaces.row-menu', reconcile)
     reconcile()
     return () => {
       unsubscribe()

@@ -1,8 +1,8 @@
 {
   "id": "dsh-open-in-vscode",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "main": "lib/index.js",
-  "description": "Open a workspace directory in VS Code from the web GUI (workspace overflow-menu row).",
+  "description": "Open registered workspaces in detected or configured local editors from the Web GUI.",
   "engines": {
     "dsh": ">=0.0.1"
   },

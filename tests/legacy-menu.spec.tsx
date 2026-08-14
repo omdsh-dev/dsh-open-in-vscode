@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import { installLegacyWorkspaceMenu } from '../src/client/legacy-menu.tsx'
 import { en } from '../src/client/locales.ts'
+import type { EditorCatalog } from '../src/types.ts'
 
 afterEach(() => {
   cleanup()
@@ -16,6 +17,13 @@ const workspaceStrings: Record<string, string> = {
   rename: 'Rename',
   'delete.workspace': 'Delete workspace',
 }
+
+const catalog: EditorCatalog = {
+  editors: [{ id: 'vscode', label: 'Visual Studio Code', available: true }],
+  defaultEditorId: 'vscode',
+}
+
+const listEditors = async (): Promise<EditorCatalog> => catalog
 
 function translate<K extends string>(dict: Record<string, string>): (key: K, params?: Record<string, unknown>) => string {
   return (key, params) => {
@@ -70,9 +78,10 @@ describe('rc.6 Workspace menu compatibility', () => {
   it('injects the row into a real Workspace menu and launches the matching path', async () => {
     const open = vi.fn(async () => {})
     const dispose = installLegacyWorkspaceMenu({
-      workspaces: { getSnapshot: () => ({ items: [{ title: 'dsh', path: '/work/dsh' }] }) },
+      workspaces: { getSnapshot: () => ({ items: [{ workspaceId: 'workspace-1', title: 'dsh', path: '/work/dsh' }] }) },
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
+      listEditors,
       open,
     })
     const anchor = document.createElement('button')
@@ -81,10 +90,10 @@ describe('rc.6 Workspace menu compatibility', () => {
     fireEvent.click(anchor)
     openWorkspaceMenu()
 
-    const row = await screen.findByRole('menuitem', { name: 'Open dsh in VSCode' })
+    const row = await screen.findByRole('menuitem', { name: 'Open dsh in Visual Studio Code' })
     fireEvent.pointerDown(row, { button: 0 })
     fireEvent.click(row)
-    await waitFor(() => { expect(open).toHaveBeenCalledWith('/work/dsh') })
+    await waitFor(() => { expect(open).toHaveBeenCalledWith('workspace-1', 'vscode') })
     expect(open).toHaveBeenCalledOnce()
     dispose()
   })
@@ -94,13 +103,14 @@ describe('rc.6 Workspace menu compatibility', () => {
       workspaces: {
         getSnapshot: () => ({
           items: [
-            { title: 'same', path: '/one' },
-            { title: 'same', path: '/two' },
+            { workspaceId: 'one', title: 'same', path: '/one' },
+            { workspaceId: 'two', title: 'same', path: '/two' },
           ],
         }),
       },
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
+      listEditors,
       open: vi.fn(async () => {}),
     })
     const anchor = document.createElement('button')
@@ -113,22 +123,23 @@ describe('rc.6 Workspace menu compatibility', () => {
     document.body.appendChild(menu)
 
     await new Promise(resolve => setTimeout(resolve, 0))
-    expect(screen.queryByRole('menuitem', { name: /VSCode/u })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: /Visual Studio Code/u })).toBeNull()
     dispose()
   })
 
   it('keeps the rc.6 hover-closing menu open when the pointer enters the injected row', async () => {
     const onClose = vi.fn()
     const dispose = installLegacyWorkspaceMenu({
-      workspaces: { getSnapshot: () => ({ items: [{ title: 'dsh', path: '/work/dsh' }] }) },
+      workspaces: { getSnapshot: () => ({ items: [{ workspaceId: 'workspace-1', title: 'dsh', path: '/work/dsh' }] }) },
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
+      listEditors,
       open: vi.fn(async () => {}),
     })
     render(<LegacyWorkspaceMenu onClose={onClose} />)
     const anchor = screen.getByRole('button', { name: 'Workspace actions for dsh' })
     fireEvent.click(anchor)
-    const row = await screen.findByRole('menuitem', { name: 'Open dsh in VSCode' })
+    const row = await screen.findByRole('menuitem', { name: 'Open dsh in Visual Studio Code' })
 
     vi.useFakeTimers()
     try {

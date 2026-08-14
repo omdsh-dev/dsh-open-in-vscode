@@ -5,17 +5,20 @@
  * browser bundle and the host manifest stay on one wire definition.
  */
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { EditorCatalog } from '../types.ts';
 /** The openInVscode Remote namespace's client contribution. */
 export declare const OPEN_IN_VSCODE_REMOTE: TypertRemoteContribution;
 declare module '@deepseek-ai/dsh-typert-protocol' {
     /** The `openInVscode` namespace face mounted under `ctx.remote.openInVscode`. */
     interface TypertRemoteNamespace$6f70656e496e5673636f6465 {
-        open: (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+        list: () => Promise<RemoteResult<EditorCatalog>>;
+        open: (workspaceId: string, editorId: string, signal?: AbortSignal) => Promise<RemoteResult<{
             opened: true;
         }>>;
     }
     interface TypertRemoteMap {
-        'openInVscode/open': (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+        'openInVscode/list': () => Promise<RemoteResult<EditorCatalog>>;
+        'openInVscode/open': (workspaceId: string, editorId: string, signal?: AbortSignal) => Promise<RemoteResult<{
             opened: true;
         }>>;
     }

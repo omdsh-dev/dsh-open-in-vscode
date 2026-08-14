@@ -21,13 +21,18 @@ export const TYPERT_MANIFEST: TypertContribution = {
       {
         key: 'openInVscode',
         exportName: 'OpenInVscodeRuntime',
-        description: 'Open one workspace directory in the configured editor CLI.',
+        description: 'List available local editors and open registered Workspaces in a selected editor.',
         tags: [],
         members: [
           {
             kind: 'method',
+            name: 'list',
+            signature: 'list(): EditorCatalog',
+          },
+          {
+            kind: 'method',
             name: 'open',
-            signature: 'open(path: string, signal?: AbortSignal): Promise<{ opened: true }>',
+            signature: 'open(workspaceId: string, editorId: string, signal?: AbortSignal): Promise<{ opened: true }>',
           },
         ],
         types: [],

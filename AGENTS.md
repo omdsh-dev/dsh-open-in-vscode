@@ -1,10 +1,10 @@
 # AGENTS.md — dsh-open-in-vscode
 
-An out-of-tree DeepSeek Harness plugin: the host half registers one strict
-Typert Remote (`openInVscode/open`) that spawns the configured editor CLI on
-the workspace directory; the client half registers into the harness's
-`sidebar.workspaces.row-menu` slot (ui-workspace) and renders the
-locale-following menu row.
+An out-of-tree DeepSeek Harness plugin: the host half registers strict
+`openInVscode/list` and `openInVscode/open` Typert Remotes, resolves a
+registered Workspace id plus an allowlisted editor id, and launches the
+editor; the client half contributes the locale-following split action to the
+Workspace row menu.
 
 ## Conventions
 
@@ -13,8 +13,10 @@ locale-following menu row.
   (`src/client/remote.ts`) — one source pins the endpoint, codecs, and
   result shape.
 - The harness owns the slot declaration; this repo only registers into it.
-  The slot, Menu's node entry kind, and their tests live in the harness
-  checkout (packages/client/ui-workspace + ui-primitives).
+  Until the declaration reaches the published package, the client uses a
+  narrow type adapter plus the rc.6 DOM compatibility implementation.
+- Browser requests never carry paths, commands, or arguments. The Host owns
+  Workspace lookup, editor discovery, availability, and launch plans.
 - Registrations are effects: `ctx.effect` / `ctx.typert.register` /
   `ctx.slots.inject` — disposal is asserted in tests.
 - Product copy is Chinese via the locale dictionary; code comments and JSDoc

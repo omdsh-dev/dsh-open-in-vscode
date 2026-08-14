@@ -42,6 +42,9 @@ importers:
       '@deepseek-ai/dsh-typert-registry':
         specifier: link:../dsh/packages/typert/registry
         version: link:../dsh/packages/typert/registry
+      '@deepseek-ai/dsh-workspace':
+        specifier: link:../dsh/packages/workspace/workspace
+        version: link:../dsh/packages/workspace/workspace
       '@deepseek-ai/schemastery':
         specifier: link:../dsh/vendor/schemastery
         version: link:../dsh/vendor/schemastery

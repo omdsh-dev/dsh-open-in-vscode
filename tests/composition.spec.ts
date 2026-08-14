@@ -5,14 +5,40 @@
  * editor on the directory. The editor seam is real (a fixture script); only
  * the process boundary is a fixture command.
  */
-import { Context, symbols } from '@deepseek-ai/cordis'
+import { Context, Service, symbols } from '@deepseek-ai/cordis'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import type { Workspace, WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import * as plugin from '../src/index.ts'
 import type { OpenInVscodeRuntime } from '../src/runtime.ts'
+
+class FixtureWorkspaceRegistry extends Service {
+  private readonly workspaces: ReadonlyMap<string, Workspace>
+
+  constructor(ctx: Context, entries: ReadonlyArray<{ id: string; path: string; status?: 'ok' | 'missing-dir' }>) {
+    super(ctx, 'workspaceRegistry')
+    this.workspaces = new Map(entries.map(entry => [entry.id, {
+      id: entry.id as WorkspaceId,
+      path: entry.path,
+      title: entry.id,
+      createdAt: '2026-08-14T00:00:00.000Z',
+      updatedAt: '2026-08-14T00:00:00.000Z',
+      sessionIds: [],
+      status: async () => entry.status ?? 'ok',
+      setTitle: async () => {},
+      attachSession: async () => {},
+      insertSessionBefore: async () => {},
+      detachSession: async () => {},
+    }]))
+  }
+
+  get(id: WorkspaceId): Workspace | undefined {
+    return this.workspaces.get(String(id))
+  }
+}
 
 /** The unproxied service original (cordis caller-tracking may wrap instances). */
 function originalOf(service: object): object {
@@ -35,10 +61,22 @@ async function fixtureEditor(): Promise<{ root: string; marker: string; args: st
 }
 
 /** Mount the function-plugin module on a fresh context (harness test pattern). */
-async function mount(ctx: Context, config?: plugin.Config) {
+async function mount(
+  ctx: Context,
+  config: plugin.Config = {},
+  workspaces: ReadonlyArray<{ id: string; path: string; status?: 'ok' | 'missing-dir' }> = [
+    { id: 'workspace-1', path: '/tmp' },
+  ],
+) {
+  new FixtureWorkspaceRegistry(ctx, workspaces)
   const registryFiber = ctx.plugin(TypertRegistry)
   await registryFiber
-  const fiber = ctx.plugin({ inject: plugin.inject, apply: plugin.apply }, config)
+  const fiber = ctx.plugin({ inject: plugin.inject, apply: plugin.apply }, {
+    command: process.execPath,
+    label: 'Fixture editor',
+    autoDetect: false,
+    ...config,
+  })
   await fiber
   return fiber
 }
@@ -67,6 +105,12 @@ describe('dsh-open-in-vscode host composition', () => {
       namespace: 'openInVscode',
       method: 'open',
     })
+    expect(registry.local.get('openInVscode/list')).toMatchObject({
+      id: 'dsh-open-in-vscode#openInVscode/list',
+      service: 'openInVscode',
+      namespace: 'openInVscode',
+      method: 'list',
+    })
     await fiber.dispose()
     expect(registry.local.get('openInVscode/open')).toBeUndefined()
     expect(ctx.get('openInVscode')).toBeUndefined()
@@ -80,10 +124,10 @@ describe('dsh-open-in-vscode host composition', () => {
       const fiber = await mount(ctx, {
         command: process.execPath,
         args: fixture.args,
-      })
+      }, [{ id: 'workspace-1', path: dir }])
       try {
         const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
-        await expect(runtime.open(dir, new AbortController().signal)).resolves.toEqual({ opened: true })
+        await expect(runtime.open('workspace-1', 'vscode', new AbortController().signal)).resolves.toEqual({ opened: true })
         await vi.waitFor(async () => {
           expect(await readFile(fixture.marker, 'utf8')).toContain(dir)
         })
@@ -95,27 +139,42 @@ describe('dsh-open-in-vscode host composition', () => {
     }
   })
 
-  it('open refuses a relative path', async () => {
+  it('list publishes browser-safe editor metadata', async () => {
     const ctx = new Context()
     const fiber = await mount(ctx)
     try {
       const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
-      await expect(runtime.open('relative/path', new AbortController().signal))
-        .rejects.toThrow(/refusing a relative path/)
+      expect(runtime.list()).toEqual({
+        editors: [{ id: 'vscode', label: 'Fixture editor', available: true }],
+        defaultEditorId: 'vscode',
+      })
     } finally {
       await fiber.dispose()
     }
   })
 
-  it('open reports a missing editor executable with a fix hint', async () => {
+  it('open rejects unknown workspaces, missing directories, and unknown editors', async () => {
     const ctx = new Context()
-    const fiber = await mount(ctx, { command: 'definitely-not-an-editor-bin', args: [] })
+    const fiber = await mount(ctx, {}, [{ id: 'missing-dir', path: '/gone', status: 'missing-dir' }])
     try {
       const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
-      await expect(runtime.open('/tmp', new AbortController().signal))
-        .rejects.toThrow(/definitely-not-an-editor-bin/)
-      await expect(runtime.open('/tmp', new AbortController().signal))
-        .rejects.toThrow(/not on PATH/)
+      await expect(runtime.open('unknown', 'vscode')).rejects.toThrow(/unknown workspace/)
+      await expect(runtime.open('missing-dir', 'vscode')).rejects.toThrow(/directory is missing/)
+      await expect(runtime.open('missing-dir', 'unknown')).rejects.toThrow(/directory is missing/)
+    } finally {
+      await fiber.dispose()
+    }
+  })
+
+  it('open rejects an unavailable configured editor before spawning', async () => {
+    const ctx = new Context()
+    const fiber = await mount(ctx, {
+      editors: [{ id: 'missing', label: 'Missing', command: '/definitely/missing' }],
+    })
+    try {
+      const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
+      await expect(runtime.open('workspace-1', 'missing')).rejects.toThrow(/editor "missing" is unavailable/)
+      await expect(runtime.open('workspace-1', 'unknown')).rejects.toThrow(/unknown editor/)
     } finally {
       await fiber.dispose()
     }
@@ -128,7 +187,7 @@ describe('dsh-open-in-vscode host composition', () => {
       const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
       const aborted = new AbortController()
       aborted.abort()
-      await expect(runtime.open('/tmp', aborted.signal)).rejects.toThrow(/aborted/)
+      await expect(runtime.open('workspace-1', 'vscode', aborted.signal)).rejects.toThrow(/aborted/)
     } finally {
       await fiber.dispose()
     }

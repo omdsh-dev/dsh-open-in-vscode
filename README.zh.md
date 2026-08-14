@@ -1,40 +1,41 @@
 # dsh-open-in-vscode
 
-在 DeepSeek Harness Web 界面中直接打开工作区目录到 VS Code：侧边栏每个真实
-Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
+从 DeepSeek Harness Web 界面用本机编辑器打开已经登记的 Workspace。Workspace 的 **…** 菜单可以直接启动首选编辑器；检测到多个启动目标时，还会提供编辑器选择菜单。
+
+[English](README.md) | 中文
 
 ## 功能
 
-- 客户端优先使用 harness 的 `sidebar.workspaces.row-menu` 插槽；公开发布的
-  DSH `0.1.0-rc.6` 尚未包含该插槽时，则自动启用受限兼容适配器。两条路径都渲染
-  随语言切换的菜单行 —— 中文为 **在 VSCode 中打开**，英文为 **Open in VSCode**。
-- 点击该行会关闭菜单，并通过严格的 Typert Remote `openInVscode/open` 把工作区目录交给主机。
-- 主机侧用配置的编辑器 CLI 打开该目录（默认 `code <path>`），进程分离，
-  编辑器比服务器活得更久。
+- Host 会检测已安装的 VS Code、Cursor、Windsurf、Zed、常见 JetBrains IDE、系统终端和文件管理器；管理员配置的编辑器会加入该列表。
+- 主菜单行使用 Host 配置或当前浏览器记住的编辑器打开 Workspace。点击右侧箭头可以选择其他编辑器；选中的编辑器会启动并成为当前浏览器的首选项。
+- 配置过但找不到的编辑器会保留为禁用菜单项，并显示修复提示；未安装的自动检测候选不会占用菜单。
+- 客户端在 Host 声明 `sidebar.workspaces.row-menu` 时使用原生插槽；公开发布的 DSH `0.1.0-rc.6` Web UI 没有该插槽时，使用受限兼容适配器。
+- 编辑器进程启动后与 DSH Web 服务器分离，可以独立存活。
+
+## 自动检测目标
+
+| 平台 | 自动检测的目标 |
+| --- | --- |
+| macOS | VS Code、Cursor、Windsurf、Zed、IntelliJ IDEA、WebStorm、PyCharm、终端、Finder |
+| Windows | VS Code、Cursor、Windsurf、Zed、IntelliJ IDEA、WebStorm、PyCharm、Windows Terminal、文件资源管理器 |
+| Linux | VS Code、Cursor、Windsurf、Zed、IntelliJ IDEA、WebStorm、PyCharm、`x-terminal-emulator`、`xdg-open` |
+
+所有平台都会查询 PATH；macOS 和 Windows 还会检查各内置配置中列出的标准应用目录。Host 插件加载时完成检测；安装新编辑器或修改配置后需要重启 DSH。
 
 ## 前置条件
 
-- 已安装 VS Code，或 PATH 中存在编辑器 CLI。Windows 使用默认 `code` 时还会
-  自动查找 VS Code 的标准用户级、系统级安装目录；macOS 请安装
-  [VS Code 命令行工具](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)，
-  或在插件 `command` 中配置任何能打开目录的编辑器）。
-- DSH `0.1.0-rc.6` 或更高版本。存在 Workspace 行菜单扩展点时使用原生插槽，
-  `rc.6` 则使用兼容适配器。
+- 至少存在一个可用的内置编辑器或已配置的编辑器可执行文件。
+- DSH `0.1.0-rc.6` 或更高版本。较新的运行时可以提供原生 Workspace 行菜单插槽；`rc.6` 使用兼容适配器。
 
 ## 安装
 
-把插件加入你的 web profile（会在 profile 内执行 pnpm 并合并 bundle 层）：
+把插件加入 Web profile：
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.2.0.tar.gz
 ```
 
-重启 Web 服务器（`kill -TERM <pid>` 并等待退出——切勿 `kill -9`，会撕裂
-会话 zstd 日志），然后刷新页面。主机插件挂载在 `dsh-open-in-vscode`；
-客户端 bundle 由 `/plugins/dsh-open-in-vscode/client.js` 提供。
-
-版本化 tarball 会直接替换旧的固定提交，且不会运行 git `prepare` 脚本。可用以下
-命令确认实际安装版本：
+使用 `SIGTERM` 重启 Web 服务器，等待它退出后刷新页面。切勿使用 `kill -9`，否则可能中断 Session zstd 写入。使用以下命令确认安装版本：
 
 ```sh
 dsh plugin --profile web list dsh-open-in-vscode --depth 0
@@ -42,35 +43,53 @@ dsh plugin --profile web list dsh-open-in-vscode --depth 0
 
 ## 配置
 
-部署相关的选项都是经校验的 `Config` 字段，可在 cordis.yml 中修改：
+所有部署选项都是经过校验的 Cordis 配置字段：
 
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
-| `command` | `code` | 打开目录的可执行文件。默认值还会查找 Windows 的标准 VS Code 安装目录；其他命令按 PATH 解析。 |
-| `args` | `[]` | 目录路径前附加的参数。 |
+| `command` | `code` | 向后兼容的默认编辑器可执行文件。 |
+| `args` | `[]` | 默认编辑器中位于 Workspace 目录之前的参数。 |
+| `label` | `Visual Studio Code` | 默认编辑器的显示名称。 |
+| `autoDetect` | `true` | 加入当前平台上可用的内置编辑器。 |
+| `editors` | `[]` | 额外的白名单 `{ id, label, command, args }` 编辑器配置。 |
+| `defaultEditor` | `vscode` | 当前浏览器尚未保存选择时使用的首选编辑器 id。 |
 
-可执行文件缺失时会响亮失败并给出修复提示；相对路径会被拒绝。
+示例：
+
+```yaml
+- id: dsh-open-in-vscode
+  name: dsh-open-in-vscode
+  config:
+    defaultEditor: cursor
+    editors:
+      - id: fleet
+        label: Fleet
+        command: fleet
+        args: []
+```
+
+编辑器 id 只能包含小写字母、数字、点、下划线和连字符。重复 id、空名称和非法 id 会导致插件加载失败。向后兼容的默认配置占用 `vscode`，因此自定义编辑器不能重复使用该 id。
 
 ## 能力边界
 
-| 动作 | 在哪里执行 | 是否需要审批 |
-| --- | --- | --- |
-| 在编辑器中打开工作区目录 | 主机（用户手势） | 否——用户主动点击了该行 |
-| 其他 | — | 插件没有工具、没有设置命名空间、没有任何模型可见面 |
+浏览器只能获得编辑器 id、名称、可用状态和修复提示，命令和参数不会经过线协议。打开请求只携带 Workspace id 和编辑器 id；Host 通过 `ctx.workspaceRegistry` 解析 Workspace，并通过已经校验的编辑器白名单解析命令，然后才会启动进程。
 
-本插件不提供工具、技能或设置项，只打开用户在 DSH 中已经打开过的目录；
-它自己从不读写文件。
+插件只能打开仍然存在目录的已登记 Workspace。它不会读取、写入、克隆、同步或上传 Workspace 文件，也不注册模型工具、技能、提示词或模型可见事件。启动操作来自用户在 Workspace 菜单中的明确点击，因此不需要 Agent 审批。
+
+首选编辑器保存在当前浏览器中。不同浏览器可以选择不同的默认值，而不改变 Host 配置。
 
 ## 开发
 
+仓库使用相邻的 `../dsh` DeepSeek Harness 源码作为开发期链接依赖。
+
 ```sh
 pnpm install
-pnpm run check   # typecheck + lint + test + build；提交 lib/（file: 安装无需构建即可运行）
+pnpm run check
 ```
 
-结构：线协议契约集中在 `src/contract.ts` 一个模块，主机 manifest
-（`src/typert.ts`）与客户端贡献（`src/client/remote.ts`）共用同一份；
-插槽声明与 Menu 节点行类型由 harness 提供。
+`pnpm run check` 会执行类型检查、lint、测试和生产构建。file profile 安装不会自动构建包，因此需要提交 `lib/`。
+
+`src/contract.ts` 中的严格 Typert 描述符由 Host manifest 和客户端 Remote 贡献共用。Host 编辑器注册表负责可执行文件发现和命令隐私，Workspace 注册表负责从 id 解析路径。行菜单插槽声明由 Harness 持有；该声明进入公开客户端包之前，插件使用一个窄类型适配器。
 
 ## License
 
