@@ -11,10 +11,14 @@ export interface LaunchEditorOptions {
     /** Start the child in this directory. */
     cwd?: string;
     /**
-     * Windows only: relaunch the command through `cmd /c start` (ShellExecute)
-     * so console apps get a real console window and explorer.exe opens a real
-     * Explorer window — neither of which detached + CREATE_NO_WINDOW can
-     * produce. The new window's working directory is the spawned cmd's cwd.
+     * Windows only: relaunch the command through cmd /c start (ShellExecute)
+     * so GUI and console windows get a real, foreground window — direct spawn
+     * from a background service never activates a GUI window, and console apps
+     * would be hidden by detached + CREATE_NO_WINDOW. Used only when the launch
+     * target resolves to an existing file; otherwise the direct spawn stays, so
+     * a missing executable still fails loud with a fix hint. The new window's
+     * working directory is the spawned cmd's cwd, and path still reaches the
+     * child through argv unless appendPath is false.
      */
     shellOpen?: boolean;
 }

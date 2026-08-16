@@ -16,9 +16,10 @@ Workspace 行的 **…** 菜单里新增三行 —— **在 VSCode 中打开**�
   `openInVscode/openInPowerShell` 把工作区目录交给主机。
 - 主机侧分别用配置的编辑器 CLI（默认 `code <path>`）、`explorer <path>` 和
   `pwsh -NoExit`（以工作区为起始目录）打开该目录，进程分离，
-  打开的窗口比服务器活得更久。在 Windows 上，资源管理器与 PowerShell 两个动作
-  经 `cmd /c start`（ShellExecute）启动，保证弹出真实的资源管理器窗口与控制台
-  窗口（直接 spawn 会被 CREATE_NO_WINDOW/DETACHED_PROCESS 隐藏或无法弹窗）。
+  打开的窗口比服务器活得更久。在 Windows 上，三个动作都经 `cmd /c start`
+  （ShellExecute）启动，让新窗口直接出现在屏幕最前方——后台服务直接 spawn
+  GUI 程序只会让窗口在任务栏闪烁，控制台程序则会被
+  CREATE_NO_WINDOW/DETACHED_PROCESS 隐藏或无法弹窗。
 
 ## 前置条件
 
@@ -34,7 +35,7 @@ Workspace 行的 **…** 菜单里新增三行 —— **在 VSCode 中打开**�
 把插件加入你的 web profile（会在 profile 内执行 pnpm 并合并 bundle 层）：
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.6.tar.gz
 ```
 
 重启 Web 服务器（`kill -TERM <pid>` 并等待退出——切勿 `kill -9`，会撕裂

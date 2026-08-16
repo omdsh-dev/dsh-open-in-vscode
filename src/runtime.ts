@@ -13,7 +13,7 @@ import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { ResolvedConfig } from './types.ts'
-import { resolveEditorCommand } from './resolve.ts'
+import { resolveEditorCommand, windowsCommandExists } from './resolve.ts'
 
 /**
  * Launch tweaks for {@link launchEditor}: how the directory reaches the child
@@ -25,10 +25,14 @@ export interface LaunchEditorOptions {
   /** Start the child in this directory. */
   cwd?: string
   /**
-   * Windows only: relaunch the command through `cmd /c start` (ShellExecute)
-   * so console apps get a real console window and explorer.exe opens a real
-   * Explorer window — neither of which detached + CREATE_NO_WINDOW can
-   * produce. The new window's working directory is the spawned cmd's cwd.
+   * Windows only: relaunch the command through cmd /c start (ShellExecute)
+   * so GUI and console windows get a real, foreground window — direct spawn
+   * from a background service never activates a GUI window, and console apps
+   * would be hidden by detached + CREATE_NO_WINDOW. Used only when the launch
+   * target resolves to an existing file; otherwise the direct spawn stays, so
+   * a missing executable still fails loud with a fix hint. The new window's
+   * working directory is the spawned cmd's cwd, and path still reaches the
+   * child through argv unless appendPath is false.
    */
   shellOpen?: boolean
 }
@@ -58,8 +62,15 @@ export function launchEditor(
     let executable = resolveEditorCommand(command)
     let argv = options.appendPath === false ? [...args] : [...args, path]
     if (options.shellOpen === true && process.platform === 'win32') {
-      executable = 'cmd.exe'
-      argv = ['/c', 'start', '', command, ...args]
+      // cmd /c start needs the resolved executable (a bare code would depend
+      // on PATH's code.cmd) and the directory still travels as argv (the old
+      // branch dropped it, so Explorer opened its default location).
+      const target = executable
+      if (windowsCommandExists(target)) {
+        executable = 'cmd.exe'
+        argv = ['/c', 'start', '', target, ...args]
+        if (options.appendPath !== false) argv.push(path)
+      }
     }
     const child = spawn(executable, argv, {
       detached: true,
@@ -73,7 +84,7 @@ export function launchEditor(
       signal?.removeEventListener('abort', abort)
       const hint = error.code === 'ENOENT'
         ? process.platform === 'win32' && command.toLowerCase() === 'code'
-          ? '; dsh-open-in-vscode@0.1.5 could not find VS Code on PATH or in its standard per-user/system install locations'
+          ? '; dsh-open-in-vscode@0.1.6 could not find VS Code on PATH or in its standard per-user/system install locations'
           : `; the "${command}" executable is not on PATH — install the editor CLI or configure the plugin "command"`
         : ''
       reject(new Error(`open-in-vscode: failed to launch "${command}": ${error.message}${hint}`))
@@ -111,7 +122,10 @@ export class OpenInVscodeRuntime extends TypertRemoteService {
     if (!isAbsolute(path)) {
       throw new Error(`open-in-vscode: refusing a relative path "${path}"`)
     }
-    await launchEditor(this.config.command, this.config.args, path, signal)
+    // Windows: relaunch through cmd /c start so the editor window opens in
+    // the foreground instead of blinking in the taskbar (direct spawn from a
+    // background service never activates a GUI window).
+    await launchEditor(this.config.command, this.config.args, path, signal, { shellOpen: true })
     return { opened: true }
   }
 

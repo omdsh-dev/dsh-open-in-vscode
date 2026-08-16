@@ -59,4 +59,12 @@ await build({
 })
 
 import { execFileSync } from 'node:child_process'
-execFileSync('node_modules/.bin/tsc', ['-p', 'tsconfig.json'], { stdio: 'inherit' })
+import { join } from 'node:path'
+// Windows cannot CreateProcess a .CMD shim directly (EINVAL), and cmd.exe
+// only resolves backslash paths, so route through cmd.exe with a join()ed
+// path; the extensionless POSIX shim is equally unexecutable (ENOENT).
+if (process.platform === 'win32') {
+  execFileSync('cmd.exe', ['/c', join('node_modules', '.bin', 'tsc.CMD'), '-p', 'tsconfig.json'], { stdio: 'inherit' })
+} else {
+  execFileSync('node_modules/.bin/tsc', ['-p', 'tsconfig.json'], { stdio: 'inherit' })
+}

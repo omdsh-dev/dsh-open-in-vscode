@@ -18,9 +18,10 @@ menu — **Open in VSCode**, **Open in Explorer**, and **Open in PowerShell**.
 - The host half spawns the configured editor CLI on that directory
   (`code <path>` by default), `explorer <path>`, or `pwsh -NoExit` started in
   the directory — all detached, so the opened window outlives the server. On
-  Windows the Explorer and PowerShell actions launch through `cmd /c start`
-  (ShellExecute) so a real Explorer window and a real console window appear
-  (direct spawn would be hidden by CREATE_NO_WINDOW/DETACHED_PROCESS).
+  Windows all three actions relaunch through `cmd /c start` (ShellExecute) so
+  the new window opens in the foreground — direct spawn from a background
+  service would leave a GUI window blinking in the taskbar and a console app
+  hidden by CREATE_NO_WINDOW/DETACHED_PROCESS.
 
 ## Prerequisites
 
@@ -38,7 +39,7 @@ Add the plugin to your web profile (this runs pnpm inside the profile and
 reconciles the bundle layer):
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.6.tar.gz
 ```
 
 Restart the web server (`kill -TERM <pid>` and wait for exit — never

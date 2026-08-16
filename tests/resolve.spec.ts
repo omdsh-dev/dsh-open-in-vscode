@@ -1,6 +1,6 @@
 import { win32 } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { candidateWindowsVsCodePaths, resolveEditorCommand } from '../src/resolve.ts'
+import { candidateWindowsVsCodePaths, resolveEditorCommand, windowsCommandExists } from '../src/resolve.ts'
 
 describe('Windows VS Code command resolution', () => {
   it('finds PATH, per-user, and system Code.exe locations in order', () => {
@@ -31,5 +31,30 @@ describe('Windows VS Code command resolution', () => {
     expect(resolveEditorCommand('cursor', 'win32', {}, () => false)).toBe('cursor')
     expect(resolveEditorCommand('code', 'win32', {}, () => false)).toBe('code')
     expect(resolveEditorCommand('code', 'darwin', {}, () => true)).toBe('code')
+  })
+})
+
+describe('windowsCommandExists', () => {
+  it('checks absolute paths directly', () => {
+    expect(windowsCommandExists('C:\\tools\\editor.exe', { PATH: '' }, () => true)).toBe(true)
+    expect(windowsCommandExists('C:\\tools\\editor.exe', { PATH: '' }, () => false)).toBe(false)
+  })
+
+  it('finds a bare command through PATH with the default PATHEXT suffixes', () => {
+    const exists = (p: string) => p === 'C:\\bin\\editor.exe'
+    expect(windowsCommandExists('editor', { PATH: 'C:\\bin' }, exists)).toBe(true)
+    expect(windowsCommandExists('editor', { PATH: 'C:\\bin' }, () => false)).toBe(false)
+  })
+
+  it('honors PATHEXT, quoted PATH entries, and extensionless executables', () => {
+    const exists = (p: string) => p === 'C:\\bin\\editor.cmd' || p === 'C:\\bin\\node'
+    expect(windowsCommandExists('editor', { PATH: '"C:\\bin";', PATHEXT: '.CMD' }, exists)).toBe(true)
+    expect(windowsCommandExists('node', { PATH: 'C:\\bin', PATHEXT: '.COM;.EXE' }, exists)).toBe(true)
+  })
+
+  it('compares PATH lookups case-insensitively like Windows', () => {
+    const exists = (p: string) => p.toLowerCase() === 'c:\\bin\\editor.exe'
+    expect(windowsCommandExists('EDITOR', { PATH: 'C:\\BIN', PATHEXT: '.EXE' }, exists)).toBe(true)
+    expect(windowsCommandExists('editor', { PATH: 'C:\\bin' }, exists)).toBe(true)
   })
 })

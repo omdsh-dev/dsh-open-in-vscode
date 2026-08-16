@@ -41,6 +41,34 @@ export function candidateWindowsVsCodePaths(env: NodeJS.ProcessEnv = process.env
 }
 
 /**
+ * Resolve whether a Windows launch target exists for the `cmd /c start`
+ * relaunch: absolute paths check the filesystem, bare names walk PATH with
+ * the PATHEXT suffixes. System shells (explorer, pwsh) and the resolved
+ * editor path pass through the same rule; a miss means `start` would fail,
+ * so the caller keeps the direct-spawn error path instead. Relative paths
+ * (containing a separator but not absolute) are not resolvable this way and
+ * report a miss.
+ */
+export function windowsCommandExists(
+  command: string,
+  env: NodeJS.ProcessEnv = process.env,
+  exists: Exists = existsSync,
+): boolean {
+  if (win32.isAbsolute(command)) return exists(command)
+  const suffixes = (env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD')
+    .split(';')
+    .map(suffix => suffix.toLowerCase())
+    .filter(suffix => suffix !== '')
+  for (const raw of pathValue(env).split(';')) {
+    const entry = raw.trim().replace(/^"|"$/g, '')
+    if (entry === '') continue
+    const base = win32.join(entry, command)
+    if (exists(base) || suffixes.some(suffix => exists(base + suffix))) return true
+  }
+  return false
+}
+
+/**
  * Resolve only the default `code` command on Windows. Explicit editor
  * commands remain untouched so deployment configuration stays authoritative.
  */
