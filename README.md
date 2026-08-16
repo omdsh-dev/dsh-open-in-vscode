@@ -32,7 +32,7 @@ Add the plugin to your web profile (this runs pnpm inside the profile and
 reconciles the bundle layer):
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.6.tar.gz
 ```
 
 Restart the web server (`kill -TERM <pid>` and wait for exit — never

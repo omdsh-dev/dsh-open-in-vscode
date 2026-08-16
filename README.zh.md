@@ -26,7 +26,7 @@ Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
 把插件加入你的 web profile（会在 profile 内执行 pnpm 并合并 bundle 层）：
 
 ```sh
-dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.5.tar.gz
+dsh plugin --profile web add https://github.com/omdsh-dev/dsh-open-in-vscode/archive/refs/tags/v0.1.6.tar.gz
 ```
 
 重启 Web 服务器（`kill -TERM <pid>` 并等待退出——切勿 `kill -9`，会撕裂

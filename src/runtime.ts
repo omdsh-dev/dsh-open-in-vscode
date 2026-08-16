@@ -37,7 +37,10 @@ export function launchEditor(
     const child = spawn(executable, [...args, path], {
       detached: true,
       stdio: 'ignore',
-      windowsHide: true,
+      // `code` resolves to the Electron GUI on Windows. Hiding the spawned
+      // process also hides its first window, leaving a live VS Code process
+      // with no visible window.
+      windowsHide: false,
     })
     const abort = (): void => { child.kill() }
     signal?.addEventListener('abort', abort, { once: true })
