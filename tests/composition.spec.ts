@@ -133,4 +133,18 @@ describe('dsh-open-in-vscode host composition', () => {
       await fiber.dispose()
     }
   })
+
+  it('openInExplorer and openInPowerShell refuse a relative path', async () => {
+    const ctx = new Context()
+    const fiber = await mount(ctx)
+    try {
+      const runtime = ctx.get('openInVscode') as OpenInVscodeRuntime
+      await expect(runtime.openInExplorer('relative/path', new AbortController().signal))
+        .rejects.toThrow(/refusing a relative path/)
+      await expect(runtime.openInPowerShell('relative/path', new AbortController().signal))
+        .rejects.toThrow(/refusing a relative path/)
+    } finally {
+      await fiber.dispose()
+    }
+  })
 })

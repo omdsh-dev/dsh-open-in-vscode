@@ -13,9 +13,21 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
         open: (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
             opened: true;
         }>>;
+        openInExplorer: (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+            opened: true;
+        }>>;
+        openInPowerShell: (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+            opened: true;
+        }>>;
     }
     interface TypertRemoteMap {
         'openInVscode/open': (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+            opened: true;
+        }>>;
+        'openInVscode/openInExplorer': (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
+            opened: true;
+        }>>;
+        'openInVscode/openInPowerShell': (path: string, signal?: AbortSignal) => Promise<RemoteResult<{
             opened: true;
         }>>;
     }

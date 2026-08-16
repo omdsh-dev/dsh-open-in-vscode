@@ -6,6 +6,10 @@
 export declare const zh: {
     'menu.openInVscode': string;
     'menu.openInVscode.aria': string;
+    'menu.openInExplorer': string;
+    'menu.openInExplorer.aria': string;
+    'menu.openInPowerShell': string;
+    'menu.openInPowerShell.aria': string;
 };
 /** The `open-in-vscode` namespace key union. */
 export type OpenInVscodeKey = keyof typeof zh;
@@ -13,6 +17,10 @@ export type OpenInVscodeKey = keyof typeof zh;
 export declare const en: {
     'menu.openInVscode': string;
     'menu.openInVscode.aria': string;
+    'menu.openInExplorer': string;
+    'menu.openInExplorer.aria': string;
+    'menu.openInPowerShell': string;
+    'menu.openInPowerShell.aria': string;
 };
 /** Locale namespace id registered under ctx.locale. */
 export declare const NS = "open-in-vscode";

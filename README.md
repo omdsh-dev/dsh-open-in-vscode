@@ -1,20 +1,26 @@
 # dsh-open-in-vscode
 
-Open a workspace directory in VS Code straight from the DeepSeek Harness web
-GUI: every real Workspace row in the sidebar gains an **Open in VSCode** row
-inside its **…** overflow menu.
+Open a workspace directory straight from the DeepSeek Harness web GUI: every
+real Workspace row in the sidebar gains three rows inside its **…** overflow
+menu — **Open in VSCode**, **Open in Explorer**, and **Open in PowerShell**.
 
 ## What it does
 
 - The client half uses the harness's `sidebar.workspaces.row-menu` slot when
   available and falls back to a scoped compatibility adapter on the public
-  DSH `0.1.0-rc.6` build. Both paths render the same locale-following menu row
-  — **在 VSCode 中打开** under the Chinese locale, **Open in VSCode** under
-  English.
-- The row's click closes the menu and calls the host over the strict Typert
-  Remote `openInVscode/open`, passing the workspace directory.
+  DSH `0.1.0-rc.6` build. Both paths render the same locale-following menu
+  rows — **在 VSCode 中打开** / **在资源管理器中打开** / **在 PowerShell
+  中打开** under the Chinese locale, **Open in VSCode** / **Open in
+  Explorer** / **Open in PowerShell** under English.
+- A row's click closes the menu and calls the host over the strict Typert
+  Remote `openInVscode/open`, `openInVscode/openInExplorer`, or
+  `openInVscode/openInPowerShell`, passing the workspace directory.
 - The host half spawns the configured editor CLI on that directory
-  (`code <path>` by default), detached, so the editor outlives the server.
+  (`code <path>` by default), `explorer <path>`, or `pwsh -NoExit` started in
+  the directory — all detached, so the opened window outlives the server. On
+  Windows the Explorer and PowerShell actions launch through `cmd /c start`
+  (ShellExecute) so a real Explorer window and a real console window appear
+  (direct spawn would be hidden by CREATE_NO_WINDOW/DETACHED_PROCESS).
 
 ## Prerequisites
 
@@ -59,11 +65,18 @@ cordis.yml:
 
 A missing executable fails loud with a fix hint; relative paths are refused.
 
+**Open in Explorer** always invokes `explorer`, and **Open in PowerShell**
+always invokes `pwsh -NoExit` with the workspace directory as its working
+directory; both are Windows-oriented, resolve through PATH, and stay out of
+`Config`.
+
 ## Capability boundary
 
 | Action | Runs where | Requires approval |
 | --- | --- | --- |
 | Open a workspace directory in the editor | Host (user gesture) | No — the user clicked the row |
+| Open a workspace directory in Explorer | Host (user gesture) | No — the user clicked the row |
+| Open a workspace directory in PowerShell | Host (user gesture) | No — the user clicked the row |
 | Anything else | — | The plugin has no tools, no settings namespace, and no model-facing surface |
 
 The plugin adds no tools, no skills, and no settings; it only opens the

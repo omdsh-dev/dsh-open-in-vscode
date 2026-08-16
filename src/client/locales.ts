@@ -7,6 +7,10 @@
 export const zh = {
   'menu.openInVscode': '在 VSCode 中打开',
   'menu.openInVscode.aria': '在 VSCode 中打开 {name}',
+  'menu.openInExplorer': '在资源管理器中打开',
+  'menu.openInExplorer.aria': '在资源管理器中打开 {name}',
+  'menu.openInPowerShell': '在 PowerShell 中打开',
+  'menu.openInPowerShell.aria': '在 PowerShell 中打开 {name}',
 } satisfies Record<string, string>
 
 /** The `open-in-vscode` namespace key union. */
@@ -16,6 +20,10 @@ export type OpenInVscodeKey = keyof typeof zh
 export const en = {
   'menu.openInVscode': 'Open in VSCode',
   'menu.openInVscode.aria': 'Open {name} in VSCode',
+  'menu.openInExplorer': 'Open in Explorer',
+  'menu.openInExplorer.aria': 'Open {name} in Explorer',
+  'menu.openInPowerShell': 'Open in PowerShell',
+  'menu.openInPowerShell.aria': 'Open {name} in PowerShell',
 } satisfies Record<OpenInVscodeKey, string>
 
 /** Locale namespace id registered under ctx.locale. */

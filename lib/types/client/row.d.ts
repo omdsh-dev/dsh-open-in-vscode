@@ -1,6 +1,6 @@
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import { type OpenInVscodeKey } from './locales.ts';
-/** The row's business face: the host Remote call behind the menu action. */
+/** The row's business face: the host Remote calls behind the menu actions. */
 export interface OpenInVscodeInjected {
     /**
      * Open one absolute directory in the configured editor.
@@ -8,11 +8,42 @@ export interface OpenInVscodeInjected {
      * @returns fulfillment after the editor launch is accepted.
      */
     open: (path: string) => Promise<void>;
+    /**
+     * Open one absolute directory in Windows Explorer.
+     * @param path - absolute directory path.
+     * @returns fulfillment after the launch is accepted.
+     */
+    openInExplorer: (path: string) => Promise<void>;
+    /**
+     * Open one absolute directory in a detached PowerShell window.
+     * @param path - absolute directory path.
+     * @returns fulfillment after the launch is accepted.
+     */
+    openInPowerShell: (path: string) => Promise<void>;
 }
 declare module '@deepseek-ai/dsh-client-ui-slots' {
     interface LocaleNamespaceMap {
         /** The workspace overflow-menu row copy. */
         'open-in-vscode': OpenInVscodeKey;
+    }
+}
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+    interface SlotMap {
+        /** Workspace overflow-menu rows (declared by this repo until the harness does). */
+        'sidebar.workspaces.row-menu': {
+            kind: 'single';
+            scope: 'root';
+            owner: {
+                /** Workspace id of the row's Workspace. */
+                workspaceId: string;
+                /** Display title of the Workspace. */
+                label: string;
+                /** Absolute directory path; absent rows render nothing. */
+                cwd: string | undefined;
+                /** Close the Workspace overflow menu before launching. */
+                onClose: () => void;
+            };
+        };
     }
 }
 /** Full row props: the slot's owner share + the locale seat + the inject face. */
@@ -23,7 +54,7 @@ export interface OpenInVscodeMenuRowProps extends OpenInVscodeInjected {
     label: string;
     /** Absolute directory path; absent rows render nothing. */
     cwd: string | undefined;
-    /** Close the Workspace overflow menu before launching the editor. */
+    /** Close the Workspace overflow menu before launching. */
     onClose: () => void;
     /** Locale-bound translation seat. */
     t: OpenInVscodeRowProps['t'];
@@ -31,10 +62,10 @@ export interface OpenInVscodeMenuRowProps extends OpenInVscodeInjected {
     eagerPointerActivation?: boolean;
 }
 /**
- * Render the locale-following editor row for one Workspace row.
- * @param props - owner share (row identity + close), locale seat, open face.
- * @returns the menu row, or nothing for a row without a directory.
+ * Render the locale-following menu rows for one Workspace row.
+ * @param props - owner share (row identity + close), locale seat, open faces.
+ * @returns the menu rows, or nothing for a row without a directory.
  */
-export declare function OpenInVscodeMenuRow({ cwd, label, onClose, open, t, eagerPointerActivation, }: OpenInVscodeMenuRowProps): import("react").JSX.Element | null;
+export declare function OpenInVscodeMenuRow({ cwd, label, onClose, open, openInExplorer, openInPowerShell, t, eagerPointerActivation, }: OpenInVscodeMenuRowProps): import("react").JSX.Element | null;
 /** Native row-menu slot entry. */
 export declare function OpenInVscodeRow(props: OpenInVscodeRowProps): import("react").JSX.Element;

@@ -1,16 +1,24 @@
 # dsh-open-in-vscode
 
-在 DeepSeek Harness Web 界面中直接打开工作区目录到 VS Code：侧边栏每个真实
-Workspace 行的 **…** 菜单里新增一行 **在 VSCode 中打开**。
+在 DeepSeek Harness Web 界面中直接打开工作区目录：侧边栏每个真实
+Workspace 行的 **…** 菜单里新增三行 —— **在 VSCode 中打开**、
+**在资源管理器中打开** 和 **在 PowerShell 中打开**。
 
 ## 功能
 
 - 客户端优先使用 harness 的 `sidebar.workspaces.row-menu` 插槽；公开发布的
   DSH `0.1.0-rc.6` 尚未包含该插槽时，则自动启用受限兼容适配器。两条路径都渲染
-  随语言切换的菜单行 —— 中文为 **在 VSCode 中打开**，英文为 **Open in VSCode**。
-- 点击该行会关闭菜单，并通过严格的 Typert Remote `openInVscode/open` 把工作区目录交给主机。
-- 主机侧用配置的编辑器 CLI 打开该目录（默认 `code <path>`），进程分离，
-  编辑器比服务器活得更久。
+  随语言切换的菜单行 —— 中文为 **在 VSCode 中打开** / **在资源管理器中打开** /
+  **在 PowerShell 中打开**，英文为 **Open in VSCode** / **Open in Explorer** /
+  **Open in PowerShell**。
+- 点击任意一行会关闭菜单，并通过严格的 Typert Remote
+  `openInVscode/open`、`openInVscode/openInExplorer`、
+  `openInVscode/openInPowerShell` 把工作区目录交给主机。
+- 主机侧分别用配置的编辑器 CLI（默认 `code <path>`）、`explorer <path>` 和
+  `pwsh -NoExit`（以工作区为起始目录）打开该目录，进程分离，
+  打开的窗口比服务器活得更久。在 Windows 上，资源管理器与 PowerShell 两个动作
+  经 `cmd /c start`（ShellExecute）启动，保证弹出真实的资源管理器窗口与控制台
+  窗口（直接 spawn 会被 CREATE_NO_WINDOW/DETACHED_PROCESS 隐藏或无法弹窗）。
 
 ## 前置条件
 
@@ -51,11 +59,17 @@ dsh plugin --profile web list dsh-open-in-vscode --depth 0
 
 可执行文件缺失时会响亮失败并给出修复提示；相对路径会被拒绝。
 
+**在资源管理器中打开**固定调用 `explorer`，**在 PowerShell 中打开**固定调用
+`pwsh -NoExit` 并把工作区目录作为起始目录；两者均为 Windows 用途，按 PATH
+解析，不在 `Config` 中暴露。
+
 ## 能力边界
 
 | 动作 | 在哪里执行 | 是否需要审批 |
 | --- | --- | --- |
 | 在编辑器中打开工作区目录 | 主机（用户手势） | 否——用户主动点击了该行 |
+| 在资源管理器中打开工作区目录 | 主机（用户手势） | 否——用户主动点击了该行 |
+| 在 PowerShell 中打开工作区目录 | 主机（用户手势） | 否——用户主动点击了该行 |
 | 其他 | — | 插件没有工具、没有设置命名空间、没有任何模型可见面 |
 
 本插件不提供工具、技能或设置项，只打开用户在 DSH 中已经打开过的目录；

@@ -1,10 +1,12 @@
 /**
  * The dsh-open-in-vscode host Remote service (`ctx.openInVscode`, wire
  * namespace `openInVscode`). Registered as a TypertRemoteService so the Host
- * Gateway's source-mode discovery exports its @Remote method to the Web
- * client under `/api/openInVscode/open` with zero generated artifacts; the
+ * Gateway's source-mode discovery exports its @Remote methods to the Web
+ * client under `/api/openInVscode/*` with zero generated artifacts; the
  * strict manifest (typert.ts) is what actually resolves and invokes the
- * endpoint in a profile-loaded bundle.
+ * endpoints in a profile-loaded bundle. The three endpoints open a directory
+ * in the configured editor CLI, in Windows Explorer, or in a detached
+ * PowerShell window.
  */
 import { spawn } from 'node:child_process'
 import { isAbsolute } from 'node:path'
@@ -14,12 +16,31 @@ import type { ResolvedConfig } from './types.ts'
 import { resolveEditorCommand } from './resolve.ts'
 
 /**
+ * Launch tweaks for {@link launchEditor}: how the directory reaches the child
+ * and whether Windows should relaunch through the shell.
+ */
+export interface LaunchEditorOptions {
+  /** Keep `path` out of the argv (the child gets it through `cwd` instead). */
+  appendPath?: boolean
+  /** Start the child in this directory. */
+  cwd?: string
+  /**
+   * Windows only: relaunch the command through `cmd /c start` (ShellExecute)
+   * so console apps get a real console window and explorer.exe opens a real
+   * Explorer window — neither of which detached + CREATE_NO_WINDOW can
+   * produce. The new window's working directory is the spawned cmd's cwd.
+   */
+  shellOpen?: boolean
+}
+
+/**
  * Spawn the configured editor CLI on one directory and settle when the
  * process has launched (the child detaches and outlives the server).
  * @param command - executable resolved through PATH.
  * @param args - extra arguments before the directory path.
  * @param path - absolute directory to open.
  * @param signal - caller lifetime; an abort before launch rejects the open.
+ * @param options - launch tweaks (see {@link LaunchEditorOptions}).
  * @returns fulfillment once the launch is accepted.
  */
 export function launchEditor(
@@ -27,17 +48,24 @@ export function launchEditor(
   args: readonly string[],
   path: string,
   signal?: AbortSignal,
+  options: LaunchEditorOptions = {},
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted === true) {
       reject(new Error('open-in-vscode: the open request was aborted'))
       return
     }
-    const executable = resolveEditorCommand(command)
-    const child = spawn(executable, [...args, path], {
+    let executable = resolveEditorCommand(command)
+    let argv = options.appendPath === false ? [...args] : [...args, path]
+    if (options.shellOpen === true && process.platform === 'win32') {
+      executable = 'cmd.exe'
+      argv = ['/c', 'start', '', command, ...args]
+    }
+    const child = spawn(executable, argv, {
       detached: true,
       stdio: 'ignore',
       windowsHide: true,
+      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     })
     const abort = (): void => { child.kill() }
     signal?.addEventListener('abort', abort, { once: true })
@@ -84,6 +112,40 @@ export class OpenInVscodeRuntime extends TypertRemoteService {
       throw new Error(`open-in-vscode: refusing a relative path "${path}"`)
     }
     await launchEditor(this.config.command, this.config.args, path, signal)
+    return { opened: true }
+  }
+
+  /**
+   * Open one absolute directory in Windows Explorer.
+   * @param path - absolute directory path from the workspace row.
+   * @param signal - caller lifetime; an abort before launch cancels the open.
+   * @returns the accepted launch.
+   */
+  @Remote
+  async openInExplorer(path: string, signal?: AbortSignal): Promise<{ opened: true }> {
+    if (!isAbsolute(path)) {
+      throw new Error(`open-in-vscode: refusing a relative path "${path}"`)
+    }
+    await launchEditor('explorer', [], path, signal, { shellOpen: true })
+    return { opened: true }
+  }
+
+  /**
+   * Open one absolute directory in a detached PowerShell window.
+   * @param path - absolute directory path from the workspace row.
+   * @param signal - caller lifetime; an abort before launch cancels the open.
+   * @returns the accepted launch.
+   */
+  @Remote
+  async openInPowerShell(path: string, signal?: AbortSignal): Promise<{ opened: true }> {
+    if (!isAbsolute(path)) {
+      throw new Error(`open-in-vscode: refusing a relative path "${path}"`)
+    }
+    await launchEditor('pwsh', ['-NoExit'], path, signal, {
+      appendPath: false,
+      cwd: path,
+      shellOpen: true,
+    })
     return { opened: true }
   }
 }

@@ -13,6 +13,8 @@ export interface LegacyWorkspaceMenuOptions {
     workspaceT: WorkspaceTranslate;
     rowT: OpenInVscodeMenuRowProps['t'];
     open: (path: string) => Promise<void>;
+    openInExplorer: (path: string) => Promise<void>;
+    openInPowerShell: (path: string) => Promise<void>;
 }
 type WorkspaceTranslate = (key: 'actions.workspace.aria' | 'rename' | 'delete.workspace', params?: Record<string, unknown>) => string;
 /**

@@ -20,6 +20,8 @@ export interface LegacyWorkspaceMenuOptions {
   workspaceT: WorkspaceTranslate
   rowT: OpenInVscodeMenuRowProps['t']
   open: (path: string) => Promise<void>
+  openInExplorer: (path: string) => Promise<void>
+  openInPowerShell: (path: string) => Promise<void>
 }
 
 type WorkspaceTranslate = (
@@ -110,6 +112,8 @@ export function installLegacyWorkspaceMenu(options: LegacyWorkspaceMenuOptions):
         label={active.workspace.title}
         onClose={close}
         open={options.open}
+        openInExplorer={options.openInExplorer}
+        openInPowerShell={options.openInPowerShell}
         t={options.rowT}
         eagerPointerActivation
       />,

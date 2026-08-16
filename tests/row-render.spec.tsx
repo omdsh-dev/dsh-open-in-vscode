@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 /**
- * Client row presentation: renders the locale-following menu row from the
- * slot's owner share, launches the editor on click (closing the menu first),
- * reports launch failure without crashing the row, and renders nothing for a
- * row without a directory. A renderToString smoke proves the SSR path.
+ * Client row presentation: renders the three locale-following menu rows from
+ * the slot's owner share, launches the matching host action on click
+ * (closing the menu first), reports launch failure without crashing the
+ * rows, and renders nothing for a row without a directory. A renderToString
+ * smoke proves the SSR path.
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -30,6 +31,8 @@ function props(overrides: Partial<OpenInVscodeRowProps> = {}): OpenInVscodeRowPr
     cwd: '/projects/project',
     onClose: vi.fn(),
     open: vi.fn(async () => {}),
+    openInExplorer: vi.fn(async () => {}),
+    openInPowerShell: vi.fn(async () => {}),
     t,
     useSessions,
     useWorkspaces,
@@ -38,23 +41,36 @@ function props(overrides: Partial<OpenInVscodeRowProps> = {}): OpenInVscodeRowPr
 }
 
 describe('OpenInVscodeRow', () => {
-  it('renders the zh menu row with the workspace in its aria label', () => {
+  it('renders the three zh menu rows with the workspace in their aria labels', () => {
     const view = render(<OpenInVscodeRow {...props()} />)
-    const row = screen.getByRole('menuitem', { name: '在 VSCode 中打开 Project' })
-    expect(row.textContent).toBe('在 VSCode 中打开')
-    expect(row.querySelector('svg')).not.toBeNull()
-    // SSR smoke: the same row renders as static markup.
-    expect(renderToString(<OpenInVscodeRow {...props()} />)).toContain('在 VSCode 中打开')
+    const rows = screen.getAllByRole('menuitem')
+    expect(rows).toHaveLength(3)
+    expect(screen.getByRole('menuitem', { name: '在 VSCode 中打开 Project' }).textContent).toBe('在 VSCode 中打开')
+    expect(screen.getByRole('menuitem', { name: '在资源管理器中打开 Project' }).textContent).toBe('在资源管理器中打开')
+    expect(screen.getByRole('menuitem', { name: '在 PowerShell 中打开 Project' }).textContent).toBe('在 PowerShell 中打开')
+    expect(rows.every(row => row.querySelector('svg') !== null)).toBe(true)
+    // SSR smoke: the same rows render as static markup.
+    const markup = renderToString(<OpenInVscodeRow {...props()} />)
+    expect(markup).toContain('在 VSCode 中打开')
+    expect(markup).toContain('在资源管理器中打开')
+    expect(markup).toContain('在 PowerShell 中打开')
     expect(view).toBeTruthy()
   })
 
-  it('clicking the row closes the menu and launches the editor on the cwd', async () => {
+  it('clicking each row closes the menu and launches the matching action on the cwd', async () => {
     const onClose = vi.fn()
     const open = vi.fn(async () => {})
-    render(<OpenInVscodeRow {...props({ onClose, open })} />)
-    fireEvent.click(screen.getByRole('menuitem'))
-    expect(onClose).toHaveBeenCalledOnce()
+    const openInExplorer = vi.fn(async () => {})
+    const openInPowerShell = vi.fn(async () => {})
+    render(<OpenInVscodeRow {...props({ onClose, open, openInExplorer, openInPowerShell })} />)
+
+    fireEvent.click(screen.getByRole('menuitem', { name: '在 VSCode 中打开 Project' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '在资源管理器中打开 Project' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '在 PowerShell 中打开 Project' }))
     expect(open).toHaveBeenCalledWith('/projects/project')
+    expect(openInExplorer).toHaveBeenCalledWith('/projects/project')
+    expect(openInPowerShell).toHaveBeenCalledWith('/projects/project')
+    expect(onClose).toHaveBeenCalledTimes(3)
     await Promise.resolve()
   })
 
@@ -63,7 +79,7 @@ describe('OpenInVscodeRow', () => {
     try {
       const open = vi.fn(async () => { throw new Error('no such command') })
       render(<OpenInVscodeRow {...props({ open })} />)
-      fireEvent.click(screen.getByRole('menuitem'))
+      fireEvent.click(screen.getByRole('menuitem', { name: '在 VSCode 中打开 Project' }))
       await Promise.resolve()
       expect(consoleError).toHaveBeenCalledWith('[dsh-open-in-vscode] open failed:', expect.any(Error))
     } finally {

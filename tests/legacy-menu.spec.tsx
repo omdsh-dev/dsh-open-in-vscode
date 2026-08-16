@@ -67,13 +67,17 @@ function LegacyWorkspaceMenu({ onClose }: { onClose: () => void }) {
 }
 
 describe('rc.6 Workspace menu compatibility', () => {
-  it('injects the row into a real Workspace menu and launches the matching path', async () => {
+  it('injects the rows into a real Workspace menu and launches the matching path', async () => {
     const open = vi.fn(async () => {})
+    const openInExplorer = vi.fn(async () => {})
+    const openInPowerShell = vi.fn(async () => {})
     const dispose = installLegacyWorkspaceMenu({
       workspaces: { getSnapshot: () => ({ items: [{ title: 'dsh', path: '/work/dsh' }] }) },
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
       open,
+      openInExplorer,
+      openInPowerShell,
     })
     const anchor = document.createElement('button')
     anchor.setAttribute('aria-label', 'Workspace actions for dsh')
@@ -82,10 +86,16 @@ describe('rc.6 Workspace menu compatibility', () => {
     openWorkspaceMenu()
 
     const row = await screen.findByRole('menuitem', { name: 'Open dsh in VSCode' })
+    const explorerRow = await screen.findByRole('menuitem', { name: 'Open dsh in Explorer' })
+    const powershellRow = await screen.findByRole('menuitem', { name: 'Open dsh in PowerShell' })
     fireEvent.pointerDown(row, { button: 0 })
     fireEvent.click(row)
+    fireEvent.click(explorerRow)
+    fireEvent.click(powershellRow)
     await waitFor(() => { expect(open).toHaveBeenCalledWith('/work/dsh') })
     expect(open).toHaveBeenCalledOnce()
+    expect(openInExplorer).toHaveBeenCalledWith('/work/dsh')
+    expect(openInPowerShell).toHaveBeenCalledWith('/work/dsh')
     dispose()
   })
 
@@ -102,6 +112,8 @@ describe('rc.6 Workspace menu compatibility', () => {
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
       open: vi.fn(async () => {}),
+      openInExplorer: vi.fn(async () => {}),
+      openInPowerShell: vi.fn(async () => {}),
     })
     const anchor = document.createElement('button')
     anchor.setAttribute('aria-label', 'Workspace actions for same')
@@ -124,6 +136,8 @@ describe('rc.6 Workspace menu compatibility', () => {
       workspaceT: translate(workspaceStrings),
       rowT: translate(en),
       open: vi.fn(async () => {}),
+      openInExplorer: vi.fn(async () => {}),
+      openInPowerShell: vi.fn(async () => {}),
     })
     render(<LegacyWorkspaceMenu onClose={onClose} />)
     const anchor = screen.getByRole('button', { name: 'Workspace actions for dsh' })

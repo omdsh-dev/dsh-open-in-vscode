@@ -1,10 +1,11 @@
 # AGENTS.md — dsh-open-in-vscode
 
-An out-of-tree DeepSeek Harness plugin: the host half registers one strict
-Typert Remote (`openInVscode/open`) that spawns the configured editor CLI on
-the workspace directory; the client half registers into the harness's
-`sidebar.workspaces.row-menu` slot (ui-workspace) and renders the
-locale-following menu row.
+An out-of-tree DeepSeek Harness plugin: the host half registers three strict
+Typert Remotes (`openInVscode/open`, `openInVscode/openInExplorer`,
+`openInVscode/openInPowerShell`) that spawn the configured editor CLI, Windows
+Explorer, or a detached PowerShell window on the workspace directory; the
+client half registers into the harness's `sidebar.workspaces.row-menu` slot
+(ui-workspace) and renders the locale-following menu rows.
 
 ## Conventions
 
@@ -13,8 +14,11 @@ locale-following menu row.
   (`src/client/remote.ts`) — one source pins the endpoint, codecs, and
   result shape.
 - The harness owns the slot declaration; this repo only registers into it.
-  The slot, Menu's node entry kind, and their tests live in the harness
-  checkout (packages/client/ui-workspace + ui-primitives).
+  Upstream ui-workspace does not declare `sidebar.workspaces.row-menu` yet, so
+  this repo also carries that SlotMap entry (row.tsx) until the harness does;
+  the two interface merges must agree or the build fails loudly. The slot,
+  Menu's node entry kind, and their tests live in the harness checkout
+  (packages/client/ui-workspace + ui-primitives).
 - Registrations are effects: `ctx.effect` / `ctx.typert.register` /
   `ctx.slots.inject` — disposal is asserted in tests.
 - Product copy is Chinese via the locale dictionary; code comments and JSDoc

@@ -1,10 +1,12 @@
 /**
  * dsh-open-in-vscode host plugin: mounts the `openInVscode` Typert Remote
- * service (open one workspace directory in the configured editor CLI) and
- * registers its strict Typert manifest. The client half ships in the same
- * package (`./client`); the web server serves it under
+ * service (open one workspace directory in the configured editor CLI, in
+ * Windows Explorer, or in a detached PowerShell window) and registers its
+ * strict Typert manifest. The client half ships in the same package
+ * (`./client`); the web server serves it under
  * /plugins/dsh-open-in-vscode/client.js, and it registers the "Open in
- * VSCode" row into the harness's workspace overflow-menu slot.
+ * VSCode / Explorer / PowerShell" rows into the harness's workspace
+ * overflow-menu slot.
  */
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';

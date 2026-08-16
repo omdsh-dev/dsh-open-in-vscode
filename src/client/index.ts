@@ -25,6 +25,12 @@ interface OpenInVscodeNamespaceFace {
   open(path: string, signal?: AbortSignal): Promise<
     { ok: true; value: { opened: true } } | { ok: false; error: { code: string; message: string; details: object } }
   >
+  openInExplorer(path: string, signal?: AbortSignal): Promise<
+    { ok: true; value: { opened: true } } | { ok: false; error: { code: string; message: string; details: object } }
+  >
+  openInPowerShell(path: string, signal?: AbortSignal): Promise<
+    { ok: true; value: { opened: true } } | { ok: false; error: { code: string; message: string; details: object } }
+  >
 }
 
 /**
@@ -55,20 +61,24 @@ export function apply(ctx: ClientContext): void {
     }
   }, 'dsh-open-in-vscode: remote')
 
-  const open = async (path: string): Promise<void> => {
-    if (openInVscode === undefined) {
-      throw new Error('dsh-open-in-vscode: the openInVscode Remote is not mounted')
+  const call = (method: 'open' | 'openInExplorer' | 'openInPowerShell') =>
+    async (path: string): Promise<void> => {
+      if (openInVscode === undefined) {
+        throw new Error('dsh-open-in-vscode: the openInVscode Remote is not mounted')
+      }
+      const result = await openInVscode[method](path)
+      if (!result.ok) {
+        throw new Error(`open-in-vscode: ${result.error.code}: ${result.error.message}`)
+      }
     }
-    const result = await openInVscode.open(path)
-    if (!result.ok) {
-      throw new Error(`open-in-vscode: ${result.error.code}: ${result.error.message}`)
-    }
-  }
+  const open = call('open')
+  const openInExplorer = call('openInExplorer')
+  const openInPowerShell = call('openInPowerShell')
 
   ctx.slots.inject('sidebar.workspaces.row-menu', () => ctx.slots.register({
     name: 'sidebar.workspaces.row-menu',
     locale: NS,
-    inject: (): OpenInVscodeInjected => ({ open }),
+    inject: (): OpenInVscodeInjected => ({ open, openInExplorer, openInPowerShell }),
   }, OpenInVscodeRow))
 
   // The latest public npm build (0.1.0-rc.6) predates the Workspace row-menu
@@ -87,6 +97,8 @@ export function apply(ctx: ClientContext): void {
           workspaceT: ctx.locale.bind('workspace'),
           rowT: ctx.locale.bind(NS),
           open,
+          openInExplorer,
+          openInPowerShell,
         })
       }
     }

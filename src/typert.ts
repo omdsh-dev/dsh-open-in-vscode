@@ -21,13 +21,23 @@ export const TYPERT_MANIFEST: TypertContribution = {
       {
         key: 'openInVscode',
         exportName: 'OpenInVscodeRuntime',
-        description: 'Open one workspace directory in the configured editor CLI.',
+        description: 'Open one workspace directory in the configured editor CLI, in Windows Explorer, or in a detached PowerShell window.',
         tags: [],
         members: [
           {
             kind: 'method',
             name: 'open',
             signature: 'open(path: string, signal?: AbortSignal): Promise<{ opened: true }>',
+          },
+          {
+            kind: 'method',
+            name: 'openInExplorer',
+            signature: 'openInExplorer(path: string, signal?: AbortSignal): Promise<{ opened: true }>',
+          },
+          {
+            kind: 'method',
+            name: 'openInPowerShell',
+            signature: 'openInPowerShell(path: string, signal?: AbortSignal): Promise<{ opened: true }>',
           },
         ],
         types: [],
