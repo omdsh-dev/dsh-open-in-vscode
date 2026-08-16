@@ -75,7 +75,7 @@ export function launchEditor(
     const child = spawn(executable, argv, {
       detached: true,
       stdio: 'ignore',
-      windowsHide: true,
+      windowsHide: false,
       ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     })
     const abort = (): void => { child.kill() }

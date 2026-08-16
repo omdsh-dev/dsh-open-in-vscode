@@ -45,7 +45,7 @@ describe('launchEditor', () => {
     expect(mockSpawn).toHaveBeenCalledWith('myeditor', ['/tmp/workspace'], {
       detached: true,
       stdio: 'ignore',
-      windowsHide: true,
+      windowsHide: false,
     })
   })
 
